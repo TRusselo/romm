@@ -251,11 +251,11 @@ def process_changes(changes: Sequence[Change]) -> None:
                 scan_platforms,
                 platform_ids=[db_platform.id],
                 metadata_sources=metadata_sources,
-                scan_type=ScanType.QUICK,
+                scan_type=ScanType.FILES,
                 timeout=SCAN_TIMEOUT,
                 job_result_ttl=TASK_RESULT_TTL,
                 meta={
-                    "task_name": "Quick Scan",
+                    "task_name": "Files Scan",
                     "task_type": TaskType.SCAN,
                 },
             )

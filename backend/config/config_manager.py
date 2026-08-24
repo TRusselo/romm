@@ -40,6 +40,7 @@ DEFAULT_EXCLUDED_EXTENSIONS: Final = [
     "log",
     "cache",
     "crdownload",
+    "assembling",
 ]
 DEFAULT_EXCLUDED_FILES: Final = [
     ".DS_Store",

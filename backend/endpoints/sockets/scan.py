@@ -56,6 +56,7 @@ from handler.redis_handler import (
     low_prio_queue,
     redis_client,
 )
+from handler.rom_files import HashPolicy, loaded_rom_files, refresh_rom_files
 from handler.scan_handler import (
     MetadataSource,
     ScanType,
@@ -155,6 +156,8 @@ class ScanStats:
     identified_roms: int = 0
     scanned_firmware: int = 0
     new_firmware: int = 0
+    updated_roms: int = 0
+    new_files: int = 0
 
     def __post_init__(self):
         # Lock for thread-safe updates
@@ -191,6 +194,8 @@ class ScanStats:
             "identified_roms": self.identified_roms,
             "scanned_firmware": self.scanned_firmware,
             "new_firmware": self.new_firmware,
+            "updated_roms": self.updated_roms,
+            "new_files": self.new_files,
         }
 
 
@@ -252,6 +257,28 @@ async def _identify_firmware(
     return 1 if not firmware else 0
 
 
+# `files` is left out so a scan does not ship every file row of every rom.
+SCANNING_ROM_EXCLUDE: Final = {
+    "created_at",
+    "updated_at",
+    "rom_user",
+    "last_modified",
+    "files",
+    "sibling_roms",
+}
+
+
+async def _emit_scanning_rom(
+    socket_manager: socketio.AsyncRedisManager, rom: Rom
+) -> None:
+    await socket_manager.emit(
+        "scan:scanning_rom",
+        SimpleRomSchema.from_orm_with_factory(rom).model_dump(
+            exclude=SCANNING_ROM_EXCLUDE
+        ),
+    )
+
+
 def should_scan_rom(
     scan_type: ScanType,
     rom: Rom | None,
@@ -274,11 +301,16 @@ def should_scan_rom(
     # This logic is tricky so only touch it if you know what you're doing"""
     should_scan = bool(
         # Any new roms should be scanned
-        (scan_type in {ScanType.NEW_PLATFORMS, ScanType.QUICK} and not rom)
+        (
+            scan_type in {ScanType.NEW_PLATFORMS, ScanType.QUICK, ScanType.FILES}
+            and not rom
+        )
         # Complete rescan should scan all roms
         or (scan_type == ScanType.COMPLETE)
         # Hashes rescan should scan all roms to update the hashes
         or (scan_type == ScanType.HASHES)
+        # Files rescan reconciles every existing rom's files with disk
+        or (scan_type == ScanType.FILES)
         or (
             rom
             and (
@@ -349,6 +381,31 @@ def _should_reparse_tags(
     """
 
     return bool(scan_type == ScanType.COMPLETE or (rom and rom.id in roms_ids))
+
+
+def _should_hash_incrementally(
+    scan_type: ScanType,
+    rom: Rom | None,
+    roms_ids: list[int],
+) -> bool:
+    """Decide if an existing rom's unchanged files may keep their stored hashes
+
+    Only COMPLETE and HASHES promise to re-read every byte.
+
+    Args:
+        scan_type (ScanType): Type of scan to be performed.
+        rom (Rom | None): The rom whose files are rebuilt.
+        roms_ids (list[int]): List of selected roms to be scanned.
+    """
+
+    return bool(
+        scan_type == ScanType.FILES
+        or (
+            scan_type in (ScanType.UPDATE, ScanType.UNMATCHED)
+            and rom
+            and rom.id in roms_ids
+        )
+    )
 
 
 def _should_hash_firmware(
@@ -481,6 +538,27 @@ async def _identify_rom(
                 )
                 return
 
+    # A files scan only reconciles an existing entry's files with disk; the
+    # metadata pipeline below is for new entries and the other scan types.
+    if not newly_added and not reassociated and scan_type == ScanType.FILES:
+        refreshed = await refresh_rom_files(rom, hash_policy=HashPolicy.INCREMENTAL)
+        await scan_stats.increment(
+            socket_manager=socket_manager,
+            scanned_roms=1,
+            updated_roms=1 if refreshed.changed else 0,
+            new_files=refreshed.new_files,
+        )
+        if refreshed.changed:
+            log.info(
+                f"Files of {hl(rom.name or rom.fs_name, color=BLUE)} refreshed: "
+                f"{refreshed.new_files} new, {refreshed.updated_files} updated, "
+                f"{refreshed.removed_files} removed"
+            )
+            hydrated_rom = db_rom_handler.get_rom(rom.id)
+            if hydrated_rom is not None:
+                await _emit_scanning_rom(socket_manager, hydrated_rom)
+        return
+
     # Re-read the filename tags onto an existing entry. Written onto the instance
     # rather than through update_rom because scan_rom carries these columns
     # forward from the rom it is handed, and merging its result is what persists
@@ -506,7 +584,13 @@ async def _identify_rom(
             log.debug(f"Calculating file hashes for {rom.fs_name}...")
 
         parsed_rom_files = await fs_rom_handler.get_rom_files(
-            rom, calculate_hashes=calculate_hashes
+            rom,
+            calculate_hashes=calculate_hashes,
+            existing_files=(
+                loaded_rom_files(rom)
+                if _should_hash_incrementally(scan_type, rom, roms_ids)
+                else None
+            ),
         )
         fs_rom.update(
             {
@@ -571,19 +655,7 @@ async def _identify_rom(
     _added_rom = db_rom_handler.add_rom(scanned_rom)
 
     if _added_rom.is_identified:
-        await socket_manager.emit(
-            "scan:scanning_rom",
-            SimpleRomSchema.from_orm_with_factory(_added_rom).model_dump(
-                exclude={
-                    "created_at",
-                    "updated_at",
-                    "rom_user",
-                    "last_modified",
-                    "files",
-                    "sibling_roms",
-                }
-            ),
-        )
+        await _emit_scanning_rom(socket_manager, _added_rom)
 
     if should_update_files:
         # Reconcile against the existing rows instead of replacing them, so file
@@ -678,19 +750,7 @@ async def _identify_rom(
             if badge_url and badge_path:
                 await fs_resource_handler.store_ra_badge(badge_url, badge_path)
 
-    await socket_manager.emit(
-        "scan:scanning_rom",
-        SimpleRomSchema.from_orm_with_factory(_added_rom).model_dump(
-            exclude={
-                "created_at",
-                "updated_at",
-                "rom_user",
-                "last_modified",
-                "files",
-                "sibling_roms",
-            }
-        ),
-    )
+    await _emit_scanning_rom(socket_manager, _added_rom)
 
 
 async def _scan_selected_roms(
@@ -916,6 +976,7 @@ async def _identify_platform(
         roms_by_fs_name = db_rom_handler.get_roms_by_fs_name(
             platform_id=platform.id,
             fs_names={fs_rom["fs_name"] for fs_rom in fs_roms_batch},
+            with_files=scan_type == ScanType.FILES,
         )
 
         # Separate skipped ROMs from those that need scanning
@@ -957,19 +1018,7 @@ async def _identify_platform(
             if hydrated_rom is None:
                 continue
 
-            await socket_manager.emit(
-                "scan:scanning_rom",
-                SimpleRomSchema.from_orm_with_factory(hydrated_rom).model_dump(
-                    exclude={
-                        "created_at",
-                        "updated_at",
-                        "rom_user",
-                        "last_modified",
-                        "files",
-                        "sibling_roms",
-                    }
-                ),
-            )
+            await _emit_scanning_rom(socket_manager, hydrated_rom)
 
         # Process only ROMs that actually need scanning
         scan_tasks = [
@@ -1373,7 +1422,7 @@ async def scan_handler(sid: str, options: dict[str, Any]):
         job_timeout=SCAN_TIMEOUT,  # Timeout (default of 4 hours)
         result_ttl=TASK_RESULT_TTL,
         meta={
-            "task_name": f"{scan_type.value.capitalize()} Scan",
+            "task_name": f"{scan_type.value.replace('_', ' ').title()} Scan",
             "task_type": TaskType.SCAN,
         },
     )
