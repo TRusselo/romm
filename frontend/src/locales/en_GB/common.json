@@ -68,6 +68,7 @@
   "in-library": "In library",
   "invalid-email": "Invalid email",
   "invalid-name": "Invalid name",
+  "invalid-relative-path": "Enter a relative folder path without \"..\" segments",
   "kind": "Kind",
   "last-page": "Last page",
   "last-updated": "Last updated",

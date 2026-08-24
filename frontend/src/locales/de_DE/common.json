@@ -68,6 +68,7 @@
   "in-library": "In der Bibliothek",
   "invalid-email": "Ungültige E-Mail",
   "invalid-name": "Ungültiger Name",
+  "invalid-relative-path": "Gib einen relativen Ordnerpfad ohne \"..\"-Segmente ein",
   "kind": "Typ",
   "last-page": "Letzte Seite",
   "last-updated": "Zuletzt aktualisiert",

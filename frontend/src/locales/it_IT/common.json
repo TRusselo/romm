@@ -68,6 +68,7 @@
   "in-library": "In libreria",
   "invalid-email": "Email non valida",
   "invalid-name": "Nome non valido",
+  "invalid-relative-path": "Inserisci un percorso di cartella relativo senza segmenti \"..\"",
   "kind": "Tipo",
   "last-page": "Ultima pagina",
   "last-updated": "Ultimo aggiornamento",

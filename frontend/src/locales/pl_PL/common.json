@@ -68,6 +68,7 @@
   "in-library": "W bibliotece",
   "invalid-email": "Nieprawidłowy email",
   "invalid-name": "Nieprawidłowa nazwa",
+  "invalid-relative-path": "Wprowadź względną ścieżkę folderu bez segmentów \"..\"",
   "kind": "Rodzaj",
   "last-page": "Ostatnia strona",
   "last-updated": "Ostatnio zaktualizowane",
