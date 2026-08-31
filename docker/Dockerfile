@@ -123,7 +123,14 @@ RUN wget "https://github.com/EmulatorJS/EmulatorJS/releases/download/v${EMULATOR
 # ScummVM core (built separately by the scummvm-wasm project, staged here
 # by that project's build/deploy-to-romm.sh -- not part of the official
 # EmulatorJS release above). See docker/scummvm-core/README.md.
+#
+# Both files are staged: EmulatorJS's browser-side loader picks
+# "-legacy" vs the plain name at runtime based on the browser's own
+# WebGL2 capability detection, not anything this Dockerfile or the
+# frontend patch controls -- so both names must resolve or a browser
+# that gets routed to "-legacy" 404s and the game never boots.
 COPY docker/scummvm-core/scummvm-thread-wasm.data /emulatorjs/data/cores/scummvm-thread-wasm.data
+COPY docker/scummvm-core/scummvm-thread-legacy-wasm.data /emulatorjs/data/cores/scummvm-thread-legacy-wasm.data
 
 ARG RUFFLE_VERSION=nightly-2025-08-14
 ARG RUFFLE_FILE=ruffle-nightly-2025_08_14-web-selfhosted.zip
