@@ -472,6 +472,7 @@ const _EJS_CORES_MAP: Record<string, string[]> = {
   "tera-drive": ["genesis_plus_gx"],
   "sega-nomad": ["genesis_plus_gx"],
   saturn: ["yabause"],
+  scummvm: ["scummvm"],
   snes: ["snes9x"],
   sfam: ["snes9x"],
   "super-nintendo-original-european-version": ["snes9x"],
@@ -551,7 +552,7 @@ export function getSupportedEJSCores(
  * @returns True if threads are required, false otherwise.
  */
 export function areThreadsRequiredForEJSCore(core: string): boolean {
-  return ["dosbox_pure", "ppsspp", "azahar"].includes(core);
+  return ["dosbox_pure", "ppsspp", "azahar", "scummvm"].includes(core);
 }
 
 const canvas = document.createElement("canvas");
