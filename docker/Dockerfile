@@ -120,6 +120,11 @@ RUN wget "https://github.com/EmulatorJS/EmulatorJS/releases/download/v${EMULATOR
     7z x -y "${EMULATORJS_VERSION}.7z" -o/emulatorjs && \
     rm -f "${EMULATORJS_VERSION}.7z"
 
+# ScummVM core (built separately by the scummvm-wasm project, staged here
+# by that project's build/deploy-to-romm.sh -- not part of the official
+# EmulatorJS release above). See docker/scummvm-core/README.md.
+COPY docker/scummvm-core/scummvm-thread-wasm.data /emulatorjs/data/cores/scummvm-thread-wasm.data
+
 ARG RUFFLE_VERSION=nightly-2025-08-14
 ARG RUFFLE_FILE=ruffle-nightly-2025_08_14-web-selfhosted.zip
 ARG RUFFLE_SHA256=178870c5e7dd825a8df35920dfc5328d83e53f3c4d5d95f70b1ea9cd13494151

@@ -86,3 +86,7 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 frontend/.last-run.json
+
+# scummvm-wasm core artifact, staged locally by that project's
+# build/deploy-to-romm.sh before `docker build` -- not committed here.
+/docker/scummvm-core/*.data
