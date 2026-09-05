@@ -101,3 +101,4 @@ frontend/.last-run.json
 # scummvm-wasm core artifact, staged locally by that project's
 # build/deploy-to-romm.sh before `docker build` -- not committed here.
 /docker/scummvm-core/*.data
+/docker/scummvm-core/*.json
