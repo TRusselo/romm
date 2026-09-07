@@ -147,6 +147,24 @@ RUN wget "https://github.com/EmulatorJS/EmulatorJS/releases/download/v${EMULATOR
     7z x -y "${EMULATORJS_VERSION}.7z" -o/emulatorjs && \
     rm -f "${EMULATORJS_VERSION}.7z"
 
+# Backport EmulatorJS commit 9a12941 ("Check for directory existance before
+# attempting to create it.", 2026-04-27). A zip that stores a standalone
+# directory record for a folder its file paths already created makes
+# downloadRom()'s extraction callback call FS.mkdir() on an existing path,
+# throwing ErrnoError 20 once per record -- 455 times across 34 ROMs in our
+# library, worst case 115 in a single game. The path-walk branch immediately
+# above it already guards with analyzePath().exists; the standalone-directory
+# branch does not. Fixed upstream in main and tagged v4.3.0-pre, but not in
+# any release, and this image pins 4.2.3. Drop this patch when
+# EMULATORJS_VERSION reaches 4.3.0.
+RUN set -eu; \
+    sed -i 's|t\.endsWith("/")?this\.gameManager\.FS\.mkdir(t):|t.endsWith("/")?this.gameManager.FS.analyzePath(t).exists\|\|this.gameManager.FS.mkdir(t):|' \
+        /emulatorjs/data/emulator.min.js; \
+    grep -q 'analyzePath(t).exists||this.gameManager.FS.mkdir(t)' /emulatorjs/data/emulator.min.js; \
+    sed -i 's|^\( *\)this\.gameManager\.FS\.mkdir(fileName);$|\1if (!this.gameManager.FS.analyzePath(fileName).exists) this.gameManager.FS.mkdir(fileName);|' \
+        /emulatorjs/data/src/emulator.js; \
+    grep -q 'analyzePath(fileName).exists) this.gameManager.FS.mkdir(fileName)' /emulatorjs/data/src/emulator.js
+
 # ScummVM core (built separately by the scummvm-wasm project, staged here
 # by that project's build/deploy-to-romm.sh -- not part of the official
 # EmulatorJS release above). See docker/scummvm-core/README.md.
