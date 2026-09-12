@@ -149,31 +149,37 @@ RUN apk add --no-cache \
     wget \
     ca-certificates
 
-ARG EMULATORJS_VERSION=4.2.3
-ARG EMULATORJS_SHA256=07d451bc06fa3ad04ab30d9b94eb63ac34ad0babee52d60357b002bde8f3850b
+# EmulatorJS, built from source instead of fetched as a release.
+#
+# THIS REPLACES A CHECKSUM-VERIFIED RELEASE DOWNLOAD. The previous form
+# wget'd EmulatorJS 4.2.3 and checked it against a pinned SHA256. This COPY
+# trusts a tree assembled outside the build instead, so the verification has
+# moved out of the Dockerfile rather than disappeared: rebuild it from the
+# pinned commit below and diff if you need to confirm what is in it. This is
+# a dev-image decision; upstream rommapp/romm should keep the release fetch.
+#
+# Why: 4.2.3 is from 2025-07-05. Tracking it meant carrying backports for
+# things fixed upstream long ago. The duplicate-mkdir patch that used to live
+# here was one (EmulatorJS 9a12941, ErrnoError 20 thrown once per standalone
+# zip directory record -- 455 times across 34 ROMs in our library); core
+# options v2 would have been a second, which is what makes core options show
+# their labels rather than raw values. Both are in main, so both patches are
+# gone from this file.
+#
+# The tree is staged by scummvm-wasm and not committed -- ~286 MB, nearly all
+# of it core .data files. Assembled from a pinned EmulatorJS checkout:
+#
+#     npm ci && npm run minify          -> data/
+#     @emulatorjs/core-* npm packages   -> data/cores/*.data, reports/*.json
+#
+# which reproduces the release layout: 187 cores and 48 reports, against the
+# release's 187 and 48, plus the two ScummVM files staged below.
+#
+# Pinned to a commit rather than a branch: main is unreleased and moves. Go
+# back to the release fetch once a release newer than 4.2.3 exists.
+ARG EMULATORJS_COMMIT=0b1c5e9
 
-RUN wget "https://github.com/EmulatorJS/EmulatorJS/releases/download/v${EMULATORJS_VERSION}/${EMULATORJS_VERSION}.7z" && \
-    echo "${EMULATORJS_SHA256}  ${EMULATORJS_VERSION}.7z" | sha256sum -c - && \
-    7z x -y "${EMULATORJS_VERSION}.7z" -o/emulatorjs && \
-    rm -f "${EMULATORJS_VERSION}.7z"
-
-# Backport EmulatorJS commit 9a12941 ("Check for directory existance before
-# attempting to create it.", 2026-04-27). A zip that stores a standalone
-# directory record for a folder its file paths already created makes
-# downloadRom()'s extraction callback call FS.mkdir() on an existing path,
-# throwing ErrnoError 20 once per record -- 455 times across 34 ROMs in our
-# library, worst case 115 in a single game. The path-walk branch immediately
-# above it already guards with analyzePath().exists; the standalone-directory
-# branch does not. Fixed upstream in main and tagged v4.3.0-pre, but not in
-# any release, and this image pins 4.2.3. Drop this patch when
-# EMULATORJS_VERSION reaches 4.3.0.
-RUN set -eu; \
-    sed -i 's|t\.endsWith("/")?this\.gameManager\.FS\.mkdir(t):|t.endsWith("/")?this.gameManager.FS.analyzePath(t).exists\|\|this.gameManager.FS.mkdir(t):|' \
-        /emulatorjs/data/emulator.min.js; \
-    grep -q 'analyzePath(t).exists||this.gameManager.FS.mkdir(t)' /emulatorjs/data/emulator.min.js; \
-    sed -i 's|^\( *\)this\.gameManager\.FS\.mkdir(fileName);$|\1if (!this.gameManager.FS.analyzePath(fileName).exists) this.gameManager.FS.mkdir(fileName);|' \
-        /emulatorjs/data/src/emulator.js; \
-    grep -q 'analyzePath(fileName).exists) this.gameManager.FS.mkdir(fileName)' /emulatorjs/data/src/emulator.js
+COPY docker/emulatorjs/ /emulatorjs/
 
 # ScummVM core (built separately by the scummvm-wasm project, staged here
 # by that project's build/deploy-to-romm.sh -- not part of the official
