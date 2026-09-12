@@ -99,3 +99,8 @@ frontend/.last-run.json
 # build/deploy-to-romm.sh before `docker build` -- not committed here.
 /docker/scummvm-core/*.data
 /docker/scummvm-core/*.json
+
+# EmulatorJS distribution, built from a pinned upstream checkout and staged
+# before `docker build` -- see the emulator-stage comment in docker/Dockerfile.
+# ~286 MB, nearly all core .data files; never committed.
+/docker/emulatorjs/
