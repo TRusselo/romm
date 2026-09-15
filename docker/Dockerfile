@@ -200,6 +200,11 @@ COPY docker/scummvm-core/scummvm-thread-legacy-wasm.data /emulatorjs/data/cores/
 # disabled!" and re-downloads the core every launch) and defaultWebGL2 to
 # pick the regular filename on first visit.
 COPY docker/scummvm-core/scummvm.json /emulatorjs/data/cores/reports/scummvm.json
+# ScummVM's engine-data (fonts.dat, kyra.dat, ultima.dat and 39 others) is no
+# longer embedded in the wasm -- the core fetches each file from this directory
+# on first read, which is what took the core from 90 MB to 23.5 MB. Without
+# this the core loads and then 404s on every engine that needs one.
+COPY docker/scummvm-core/scummvm-engine-data /emulatorjs/data/cores/scummvm-engine-data
 
 ARG RUFFLE_VERSION=nightly-2025-08-14
 ARG RUFFLE_FILE=ruffle-nightly-2025_08_14-web-selfhosted.zip
