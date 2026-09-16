@@ -1000,4 +1000,39 @@ onUnmounted(() => {
 #game .ejs_menu_bar .ejs_menu_button:nth-child(-1) {
   display: none;
 }
+
+/* EmulatorJS raises its own messages through this element and adds none of
+   RomM's classes, so the unclassed state has to be legible. */
+#game .ejs_message {
+  margin: 1rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  background-color: rgba(var(--v-theme-romm-blue));
+  color: white;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  filter: opacity(0.85) drop-shadow(0 0 0.5rem rgba(0, 0, 0, 0.5));
+}
+
+/* A message expires by having its text cleared, not the element removed. */
+#game .ejs_message:empty {
+  visibility: hidden;
+}
+
+#game .ejs_message::before {
+  margin-right: 8px;
+  font-size: 20px !important;
+  font: normal normal normal 24px / 1 "Material Design Icons";
+}
+
+#game .ejs_message.msg-error,
+#game .ejs_message.ejs_message_error {
+  background-color: rgba(var(--v-theme-romm-red));
+}
+
+#game .ejs_message.msg-success,
+#game .ejs_message.ejs_message_success {
+  background-color: rgba(var(--v-theme-romm-green));
+}
 </style>
