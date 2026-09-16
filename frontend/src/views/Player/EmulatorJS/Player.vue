@@ -692,11 +692,13 @@ onUnmounted(() => {
   font: normal normal normal 24px / 1 "Material Design Icons";
 }
 
-#game .ejs_message.msg-error {
+#game .ejs_message.msg-error,
+#game .ejs_message.ejs_message_error {
   background-color: rgba(var(--v-theme-romm-red));
 }
 
-#game .ejs_message.msg-success {
+#game .ejs_message.msg-success,
+#game .ejs_message.ejs_message_success {
   background-color: rgba(var(--v-theme-romm-green));
 }
 </style>
