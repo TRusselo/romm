@@ -22,6 +22,9 @@ emulatorjs:
   settings:
     scummvm:
       lockMouse: enabled       # point-and-click games want a captured pointer
+                               # (redundant since 2026-09-12: the core's own
+                               #  core.json declares supportsMouse, so this is
+                               #  already the default. Harmless to keep.)
       vsync: disabled          # smoother for ScummVM's variable-rate engines
       rewindEnabled: disabled  # see below
 ```
