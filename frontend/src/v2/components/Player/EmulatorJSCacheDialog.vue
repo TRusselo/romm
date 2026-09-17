@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// v2 EmulatorJSCacheDialog: confirmation for clearing the EJS IndexedDB
-// caches (saves / roms / core / states). Emitter-driven.
+// v2 EmulatorJSCacheDialog: confirmation for clearing EmulatorJS's stored
+// data. Emitter-driven.
 import { RBtn, RDialog, RIcon } from "@v2/lib";
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useEmitterEvent } from "@/v2/composables/useEmitterEvent";
+import { clearEmulatorJSCaches } from "@/utils/emulatorjsCache";
 
 defineOptions({ inheritAttrs: false });
 
@@ -16,11 +17,12 @@ const openHandler = () => {
 };
 useEmitterEvent("openEmulatorJSCacheDialog", openHandler);
 
-function clearIndexDB() {
-  window.indexedDB.deleteDatabase("/data/saves");
-  window.indexedDB.deleteDatabase("EmulatorJS-roms");
-  window.indexedDB.deleteDatabase("EmulatorJS-core");
-  window.indexedDB.deleteDatabase("EmulatorJS-states");
+async function clearIndexDB() {
+  const { blocked } = await clearEmulatorJSCaches();
+  if (blocked.length > 0) {
+    // Saying nothing here is what made the old behaviour invisible.
+    console.warn("Could not clear EmulatorJS storage:", blocked.join(", "));
+  }
   closeDialog();
 }
 
