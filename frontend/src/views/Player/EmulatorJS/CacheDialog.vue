@@ -5,6 +5,7 @@ import { inject, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import RDialog from "@/components/common/RDialog.vue";
 import type { Events } from "@/types/emitter";
+import { clearEmulatorJSCaches } from "@/utils/emulatorjsCache";
 
 const { t } = useI18n();
 const show = ref(false);
@@ -21,12 +22,12 @@ onBeforeUnmount(() => {
   emitter?.off("openEmulatorJSCacheDialog", openCacheDialogHandler);
 });
 
-function clearIndexDB() {
-  window.indexedDB.deleteDatabase("/data/saves");
-  window.indexedDB.deleteDatabase("EmulatorJS-roms");
-  window.indexedDB.deleteDatabase("EmulatorJS-core");
-  window.indexedDB.deleteDatabase("EmulatorJS-states");
-
+async function clearIndexDB() {
+  const { blocked } = await clearEmulatorJSCaches();
+  if (blocked.length > 0) {
+    // Saying nothing here is what made the old behaviour invisible.
+    console.warn("Could not clear EmulatorJS storage:", blocked.join(", "));
+  }
   closeDialog();
 }
 
