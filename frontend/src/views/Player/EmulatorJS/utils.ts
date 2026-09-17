@@ -16,6 +16,7 @@ import pendingAssetStore, {
 } from "@/services/pending-asset";
 import storeHeartbeat from "@/stores/heartbeat";
 import { type DetailedRom } from "@/stores/roms";
+import { clearEmulatorJSDownloadCache } from "@/utils/emulatorjsCache";
 import { buildFormInput } from "@/utils/formData";
 
 /** Tears the emulator down once, however many owners ask. */
@@ -454,7 +455,11 @@ export function invalidateEmulatorJSRomCacheIfRenamed(rom: {
   const previousFsName = localStorage.getItem(fsNameStorageKey);
 
   if (previousFsName && previousFsName !== rom.fs_name) {
-    window.indexedDB.deleteDatabase("EmulatorJS-roms");
+    // "EmulatorJS-roms" is not a database EmulatorJS ever creates; the ROM
+    // lives in the download cache with every other fetched file. Only that
+    // cache is dropped here, never save data: this fires on a rename, which
+    // must not cost the player their saves.
+    void clearEmulatorJSDownloadCache();
   }
 
   localStorage.setItem(fsNameStorageKey, rom.fs_name);
