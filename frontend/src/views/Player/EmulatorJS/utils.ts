@@ -429,9 +429,22 @@ export function loadEmulatorJSSave(save: Uint8Array) {
   window.EJS_emulator.gameManager.loadSaveFiles();
 }
 
-export function loadEmulatorJSState(state: Uint8Array) {
-  window.EJS_emulator.gameManager.loadState(state);
+export function loadEmulatorJSState(
+  state: Uint8Array,
+  options?: { maxAttempts?: number; giveUpMessage?: string },
+) {
+  window.EJS_emulator.gameManager.loadState(state, options);
 }
+
+// A state applied automatically at launch races the game's own opening, and
+// several engines refuse a load until that has finished playing -- Orion
+// Burger's runs for minutes. Retrying that long makes the tab stutter the
+// whole time and still fails, so stop early and say what does work.
+export const LAUNCH_STATE_LOAD = {
+  maxAttempts: 5,
+  giveUpMessage:
+    "Unable to load the save state at this time. Please start a new game, then load a save state.",
+};
 
 export function invalidateEmulatorJSRomCacheIfRenamed(rom: {
   id: number;
