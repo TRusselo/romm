@@ -48,6 +48,7 @@ import {
   saveState,
   loadEmulatorJSSave,
   loadEmulatorJSState,
+  LAUNCH_STATE_LOAD,
   invalidateEmulatorJSRomCacheIfRenamed,
   installEJSDefaultOptionsTrap,
   createQuickLoadButton,
@@ -727,10 +728,13 @@ window.EJS_onSaveSave = async function ({
 // States management
 // Every way a state arrives goes through here: the SRAM it restores becomes the
 // new baseline rather than progress the player made.
-async function applyState(state: Uint8Array) {
+async function applyState(
+  state: Uint8Array,
+  options?: { maxAttempts?: number; giveUpMessage?: string },
+) {
   holdBackUntilStateApplied();
   try {
-    loadEmulatorJSState(state);
+    loadEmulatorJSState(state, options);
     await new Promise((resolve) => setTimeout(resolve, STATE_APPLY_SETTLE_MS));
     baselineSaveTrackerFromEmulator();
   } finally {
@@ -738,14 +742,17 @@ async function applyState(state: Uint8Array) {
   }
 }
 
-async function loadState(state: StateSchema) {
+async function loadState(
+  state: StateSchema,
+  options?: { maxAttempts?: number; giveUpMessage?: string },
+) {
   // Raised before the download, since the picker resumes the game meanwhile.
   holdBackUntilStateApplied();
   try {
     const { data } = await api.get(state.download_path.replace("/api", ""), {
       responseType: "arraybuffer",
     });
-    await applyState(new Uint8Array(data));
+    await applyState(new Uint8Array(data), options);
     displayMessage(t("play.state-loaded"), {
       duration: 3000,
       icon: "mdi-cloud-download-outline",
@@ -873,7 +880,7 @@ window.EJS_onGameStart = async () => {
         await new Promise((resolve) =>
           setTimeout(resolve, STATE_APPLY_SETTLE_MS),
         );
-        await loadState(props.state);
+        await loadState(props.state, LAUNCH_STATE_LOAD);
       } else if (props.save) {
         await loadSave(props.save);
       } else {
