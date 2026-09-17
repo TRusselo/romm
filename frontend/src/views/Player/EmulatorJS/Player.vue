@@ -303,6 +303,7 @@ declare global {
       state: ArrayBuffer;
     }) => void;
     EJS_onLoadState: () => void;
+    EJS_onQuickLoadState: () => void;
     EJS_onSaveSave: (args: {
       screenshot: ArrayBuffer;
       save: ArrayBuffer;
@@ -758,8 +759,28 @@ async function loadState(state: StateSchema) {
 // v2 answers with its save/state picker, v1 with its states-only one.
 window.EJS_onLoadState = async function () {
   window.EJS_emulator.pause();
-  window.EJS_emulator.toggleFullscreen(false);
+  // Only when there is something to exit: EmulatorJS calls
+  // document.exitFullscreen() unguarded, which rejects otherwise.
+  if (document.fullscreenElement) window.EJS_emulator.toggleFullscreen(false);
   emitter?.emit("selectStateDialog", romRef.value);
+};
+
+// A quick load takes the newest state rather than opening the picker, so the
+// hotkey stays a hotkey. Quick saves reach the server through EJS_onSaveState
+// like any other, so this finds them -- including ones made on another machine.
+window.EJS_onQuickLoadState = async function () {
+  const states = romRef.value?.user_states ?? [];
+  if (states.length === 0) {
+    displayMessage("No states on the server for this game", {
+      duration: 3000,
+      icon: "mdi-cloud-off-outline",
+    });
+    return;
+  }
+  const newest = states.reduce((a, b) =>
+    Date.parse(b.updated_at) > Date.parse(a.updated_at) ? b : a,
+  );
+  await loadState(newest);
 };
 
 window.EJS_onSaveState = async function ({
