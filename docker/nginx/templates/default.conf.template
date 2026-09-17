@@ -82,6 +82,18 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    # EmulatorJS ships its code at stable, unversioned filenames
+    # (emulator.min.js, loader.js), unlike the app bundle, whose filenames carry
+    # a content hash. An hour of max-age therefore serves stale emulator code
+    # after an image upgrade while the freshly hashed app chunks load beside it
+    # -- a mix that presents as the new frontend calling into old EmulatorJS.
+    # Revalidate these on every request; they are small, and the cores next to
+    # them (the large files) are cached by EmulatorJS in IndexedDB anyway.
+    location ~ ^/assets/emulatorjs/.*\.(js|css)$ {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
     # Everything else under /assets keeps a stable URL across image upgrades
     location /assets {
         add_header Cache-Control "public, max-age=3600, must-revalidate";
