@@ -82,6 +82,15 @@ server {
         try_files $uri $uri/ =404;
     }
 
+    # TEMPORARY -- TEST INSTRUMENTATION, REVERT BEFORE RELEASE.
+    #
+    # This block exists so a test round cannot be run against stale code or a
+    # stale core. It is not a shipping cache policy: it puts a revalidation
+    # request on every EmulatorJS asset on every load, including the cores,
+    # which is a cost a real deployment should not carry. The shipping fix is
+    # versioned URLs for the core and the code, so they can be cached for a
+    # year like the hashed app chunks are. Remove this block then.
+    #
     # EmulatorJS ships everything at stable, unversioned filenames: its code
     # (emulator.min.js, loader.js, src/*.js) and its cores
     # (cores/*.data), unlike the app bundle, whose filenames carry a content
