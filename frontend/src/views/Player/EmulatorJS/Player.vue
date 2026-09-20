@@ -850,13 +850,19 @@ window.EJS_onGameStart = async () => {
     emulator.displayMessage = (
       text: string,
       duration?: number,
-      suffix?: string,
-      severity?: string,
-    ) =>
-      displayMessage(text + (suffix ?? ""), {
+      third?: string,
+      fourth?: string,
+    ) => {
+      // The third argument is severity in EmulatorJS 4.2.x and suffix in the
+      // builds that split the frontend out. A severity is only ever one of two
+      // words, so the two cannot be confused.
+      const isSeverity = third === "error" || third === "success";
+      const severity = isSeverity ? third : fourth;
+      displayMessage(text + (isSeverity ? "" : (third ?? "")), {
         duration: duration ?? 3000,
         tone: severity === "error" || severity === "success" ? severity : "info",
       });
+    };
   }
 
   if (props.state) holdBackUntilStateApplied();
