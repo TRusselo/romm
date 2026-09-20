@@ -739,9 +739,10 @@ async function applyState(
     // from when it was asked for. A core that refuses a load is retried for
     // seconds, and releasing the hold before then baselines the SRAM from
     // before the restore and uploads it as progress the player never made.
-    await loadEmulatorJSState(state, options);
+    const loaded = await loadEmulatorJSState(state, options);
     await new Promise((resolve) => setTimeout(resolve, STATE_APPLY_SETTLE_MS));
     baselineSaveTrackerFromEmulator();
+    return loaded !== false;
   } finally {
     stateApplied();
   }
@@ -757,11 +758,14 @@ async function loadState(
     const { data } = await api.get(state.download_path.replace("/api", ""), {
       responseType: "arraybuffer",
     });
-    await applyState(new Uint8Array(data), options);
-    displayMessage(t("play.state-loaded"), {
-      duration: 3000,
-      icon: "mdi-cloud-download-outline",
-    });
+    // Only when the engine took it: a refused load reports its own reason, and
+    // announcing success over the top of that is worse than saying nothing.
+    if (await applyState(new Uint8Array(data), options)) {
+      displayMessage(t("play.state-loaded"), {
+        duration: 3000,
+        icon: "mdi-cloud-download-outline",
+      });
+    }
   } finally {
     stateApplied();
   }
@@ -790,11 +794,12 @@ window.EJS_onQuickLoadState = async function () {
     if (local) {
       // Through applyState, so the SRAM it restores becomes the new baseline
       // rather than being counted as progress the player made.
-      await applyState(local);
-      displayMessage(t("play.quick-state-loaded"), {
-        duration: 3000,
-        icon: "mdi-flash",
-      });
+      if (await applyState(local)) {
+        displayMessage(t("play.quick-state-loaded"), {
+          duration: 3000,
+          icon: "mdi-flash",
+        });
+      }
       return;
     }
     displayMessage("No save states for this game", {
