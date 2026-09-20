@@ -149,34 +149,10 @@ RUN apk add --no-cache \
     wget \
     ca-certificates
 
-# EmulatorJS, built from source instead of fetched as a release.
-#
-# THIS REPLACES A CHECKSUM-VERIFIED RELEASE DOWNLOAD. The previous form
-# wget'd EmulatorJS 4.2.3 and checked it against a pinned SHA256. This COPY
-# trusts a tree assembled outside the build instead, so the verification has
-# moved out of the Dockerfile rather than disappeared: rebuild it from the
-# pinned commit below and diff if you need to confirm what is in it. This is
-# a dev-image decision; upstream rommapp/romm should keep the release fetch.
-#
-# Why: 4.2.3 is from 2025-07-05. Tracking it meant carrying backports for
-# things fixed upstream long ago. The duplicate-mkdir patch that used to live
-# here was one (EmulatorJS 9a12941, ErrnoError 20 thrown once per standalone
-# zip directory record -- 455 times across 34 ROMs in our library); core
-# options v2 would have been a second, which is what makes core options show
-# their labels rather than raw values. Both are in main, so both patches are
-# gone from this file.
-#
-# The tree is staged by scummvm-wasm and not committed -- ~286 MB, nearly all
-# of it core .data files. Assembled from a pinned EmulatorJS checkout:
-#
-#     npm ci && npm run minify          -> data/
-#     @emulatorjs/core-* npm packages   -> data/cores/*.data, reports/*.json
-#
-# which reproduces the release layout: 187 cores and 48 reports, against the
-# release's 187 and 48, plus the two ScummVM files staged below.
-#
-# Pinned to a commit rather than a branch: main is unreleased and moves. Go
-# back to the release fetch once a release newer than 4.2.3 exists.
+# EmulatorJS, staged by scummvm-wasm's deploy-to-romm.sh rather than fetched.
+# This replaces a checksum-verified release download: the tree is assembled
+# outside the build, so verify it by rebuilding from the pinned commit and
+# diffing. Pinned to a commit because main is unreleased and moves.
 ARG EMULATORJS_COMMIT=13ce942
 
 COPY docker/emulatorjs/ /emulatorjs/
