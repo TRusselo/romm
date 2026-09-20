@@ -167,7 +167,7 @@ RUN apk add --no-cache \
 #
 # Pinned to a commit rather than a branch: main is unreleased and moves. Go
 # back to the release fetch once a release newer than 4.2.3 exists.
-ARG EMULATORJS_COMMIT=0b1c5e9
+ARG EMULATORJS_COMMIT=13ce942
 
 COPY docker/emulatorjs/ /emulatorjs/
 
