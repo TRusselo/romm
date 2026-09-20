@@ -304,7 +304,7 @@ declare global {
       state: ArrayBuffer;
     }) => void;
     EJS_onLoadState: () => void;
-    EJS_onQuickLoadState: () => void;
+    EJS_onQuickLoadState: () => Promise<void>;
     EJS_onSaveSave: (args: {
       screenshot: ArrayBuffer;
       save: ArrayBuffer;
@@ -777,7 +777,22 @@ window.EJS_onLoadState = async function () {
 window.EJS_onQuickLoadState = async function () {
   const states = romRef.value?.user_states ?? [];
   if (states.length === 0) {
-    displayMessage("No states on the server for this game", {
+    // Nothing on the server: the browser may still hold one, and after a cache
+    // clear neither will, which is worth saying rather than doing nothing.
+    const local = await window.EJS_emulator.storage.states
+      .get(window.EJS_emulator.getBaseFileName() + ".state")
+      .catch(() => undefined);
+    if (local) {
+      // Through applyState, so the SRAM it restores becomes the new baseline
+      // rather than being counted as progress the player made.
+      await applyState(local);
+      displayMessage(t("play.quick-state-loaded"), {
+        duration: 3000,
+        icon: "mdi-flash",
+      });
+      return;
+    }
+    displayMessage("No save states for this game", {
       duration: 3000,
       icon: "mdi-cloud-off-outline",
     });
@@ -906,21 +921,10 @@ window.EJS_onGameStart = async () => {
   labelContextMenuButton(t("play.context-menu"));
 
   const quickLoad = createQuickLoadButton(t("play.load-latest-state"));
-  quickLoad.addEventListener("click", () => {
-    if (
-      window.EJS_emulator.settings["save-state-location"] === "browser" &&
-      window.EJS_emulator.saveInBrowserSupported()
-    ) {
-      window.EJS_emulator.storage.states
-        .get(window.EJS_emulator.getBaseFileName() + ".state")
-        .then(async (e: Uint8Array) => {
-          await applyState(e);
-          displayMessage(t("play.quick-state-loaded"), {
-            duration: 3000,
-            icon: "mdi-flash",
-          });
-        });
-    }
+  quickLoad.addEventListener("click", async () => {
+    // Same server-first path as the right-click quick load, so a state made on
+    // another machine is reachable and a cleared browser cache is not fatal.
+    await window.EJS_onQuickLoadState();
   });
 
   const exitEmulation = createExitEmulationButton(t("play.quit"));
