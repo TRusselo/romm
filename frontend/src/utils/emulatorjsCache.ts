@@ -14,6 +14,7 @@ const EJS_SRC_MODULES = [
   "compression.js",
   "consts.js",
   "emulator.js",
+  "frontend.js",
   "gamepad.js",
   "license.js",
   "netplay.js",
@@ -68,16 +69,31 @@ function deleteDatabase(name: string): Promise<boolean> {
 async function revalidateEmulatorJSAssets(): Promise<void> {
   const base = ejsWindow().EJS_pathtodata;
   if (typeof base !== "string" || base.length === 0) return;
+  // EJS_pathtodata is set without a trailing slash, and its other caller adds
+  // the separator itself. Joining without one produced ".../dataloader.js" for
+  // every entry: a 404 the catch below discarded, so this has been clearing
+  // nothing.
+  const prefix = base.endsWith("/") ? base : `${base}/`;
 
   const paths = ["loader.js", "emulator.min.js", "emulator.css"].concat(
     EJS_SRC_MODULES.map((file) => `src/${file}`),
   );
 
+  const missed: string[] = [];
   await Promise.all(
     paths.map((path) =>
-      fetch(base + path, { cache: "reload" }).catch(() => undefined),
+      fetch(prefix + path, { cache: "reload" })
+        .then((r) => {
+          if (!r.ok) missed.push(path);
+        })
+        .catch(() => missed.push(path)),
     ),
   );
+  // Reported rather than swallowed: a silent miss here reads as a browser
+  // serving stale code for no reason.
+  if (missed.length > 0) {
+    console.warn("Could not revalidate EmulatorJS assets:", missed.join(", "));
+  }
 }
 
 // The downloaded core and ROM only. Nothing here is user data: every entry is
