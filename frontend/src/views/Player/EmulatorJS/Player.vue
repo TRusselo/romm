@@ -847,8 +847,16 @@ window.EJS_onGameStart = async () => {
   // same host, so nothing of ours is overwritten by one of theirs.
   const emulator = window.EJS_emulator;
   if (emulator) {
-    emulator.displayMessage = (text: string, duration?: number) =>
-      displayMessage(text, { duration: duration ?? 3000 });
+    emulator.displayMessage = (
+      text: string,
+      duration?: number,
+      suffix?: string,
+      severity?: string,
+    ) =>
+      displayMessage(text + (suffix ?? ""), {
+        duration: duration ?? 3000,
+        tone: severity === "error" || severity === "success" ? severity : "info",
+      });
   }
 
   if (props.state) holdBackUntilStateApplied();
