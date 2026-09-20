@@ -82,29 +82,12 @@ server {
         try_files $uri $uri/ =404;
     }
 
-    # TEMPORARY -- TEST INSTRUMENTATION, REVERT BEFORE RELEASE.
-    #
-    # This block exists so a test round cannot be run against stale code or a
-    # stale core. It is not a shipping cache policy: it puts a revalidation
-    # request on every EmulatorJS asset on every load, including the cores,
-    # which is a cost a real deployment should not carry. The shipping fix is
-    # versioned URLs for the core and the code, so they can be cached for a
-    # year like the hashed app chunks are. Remove this block then.
-    #
-    # EmulatorJS ships everything at stable, unversioned filenames: its code
-    # (emulator.min.js, loader.js, src/*.js) and its cores
-    # (cores/*.data), unlike the app bundle, whose filenames carry a content
-    # hash. An hour of max-age therefore serves a stale core or stale emulator
-    # code after an image upgrade, while the freshly hashed app chunks load
-    # beside it.
-    #
-    # no-cache revalidates rather than refusing to store, so an unchanged core
-    # costs a 304 and not a re-download, and EmulatorJS keeps its own copy in
-    # IndexedDB regardless. Only a core that actually changed is fetched again,
-    # which is the entire point.
-    location ~ ^/assets/emulatorjs/ {
+    # Cores keep a stable filename across image upgrades, so an hour of max-age
+    # serves a replaced core stale. no-cache still allows a 304, which matters
+    # at roughly 24 MB each.
+    location /assets/emulatorjs/data/cores/ {
         add_header Cache-Control "no-cache";
-        try_files $uri =404;
+        try_files $uri $uri/ =404;
     }
 
     # Everything else under /assets keeps a stable URL across image upgrades
