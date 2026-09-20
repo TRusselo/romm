@@ -735,7 +735,11 @@ async function applyState(
 ) {
   holdBackUntilStateApplied();
   try {
-    loadEmulatorJSState(state, options);
+    // Awaited: the settle is measured from when the state actually lands, not
+    // from when it was asked for. A core that refuses a load is retried for
+    // seconds, and releasing the hold before then baselines the SRAM from
+    // before the restore and uploads it as progress the player never made.
+    await loadEmulatorJSState(state, options);
     await new Promise((resolve) => setTimeout(resolve, STATE_APPLY_SETTLE_MS));
     baselineSaveTrackerFromEmulator();
   } finally {

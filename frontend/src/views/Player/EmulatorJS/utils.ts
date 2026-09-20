@@ -434,7 +434,9 @@ export function loadEmulatorJSState(
   state: Uint8Array,
   options?: { maxAttempts?: number; giveUpMessage?: string },
 ) {
-  window.EJS_emulator.gameManager.loadState(state, options);
+  // Returned, not fired and forgotten: a core can refuse a load and be retried
+  // for seconds, and the caller holds back SRAM and audio until it lands.
+  return window.EJS_emulator.gameManager.loadState(state, options);
 }
 
 // A state applied automatically at launch races the game's own opening, and
