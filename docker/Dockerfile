@@ -143,7 +143,7 @@ RUN apk add --no-cache \
 # This replaces a checksum-verified release download: the tree is assembled
 # outside the build, so verify it by rebuilding from the pinned commit and
 # diffing. Pinned to a commit because main is unreleased and moves.
-ARG EMULATORJS_COMMIT=13ce942
+ARG EMULATORJS_COMMIT=f4f0f1c
 
 COPY docker/emulatorjs/ /emulatorjs/
 
