@@ -444,7 +444,7 @@ export function loadEmulatorJSState(
 export const LAUNCH_STATE_LOAD = {
   maxAttempts: 5,
   giveUpMessage:
-    "Unable to load the save state at this time. Please start a new game, then load a save state.",
+    "Start a new game, then load a save state - it cannot be loaded at this point.",
 };
 
 export function invalidateEmulatorJSRomCacheIfRenamed(rom: {
