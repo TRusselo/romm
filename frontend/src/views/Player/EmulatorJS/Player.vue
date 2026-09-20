@@ -846,8 +846,11 @@ window.EJS_onGameStart = async () => {
   // EmulatorJS' own notices (its browser save-state slots) go through the
   // same host, so nothing of ours is overwritten by one of theirs.
   const emulator = window.EJS_emulator;
-  if (emulator) {
-    emulator.displayMessage = (
+  // displayMessage moved onto the frontend object when EmulatorJS split its
+  // backend and frontend; builds before that keep it on the emulator itself.
+  const target = emulator?.frontend ?? emulator;
+  if (target) {
+    target.displayMessage = (
       text: string,
       duration?: number,
       third?: string,
