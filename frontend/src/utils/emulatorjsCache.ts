@@ -8,6 +8,10 @@
 // deleting those has always been a silent no-op: deleteDatabase on a name that
 // does not exist succeeds.
 
+// Where the player mounts EmulatorJS. Kept in step with LOCAL_PATH in the
+// player views, which hardcode the same string.
+const EJS_DATA_PATH = "/assets/emulatorjs/data";
+
 const EJS_SRC_MODULES = [
   "GameManager.js",
   "cache.js",
@@ -67,8 +71,12 @@ function deleteDatabase(name: string): Promise<boolean> {
 // freshly hashed app bundle. Refetching past the cache replaces those entries
 // so the next load gets what is actually deployed.
 async function revalidateEmulatorJSAssets(): Promise<void> {
-  const base = ejsWindow().EJS_pathtodata;
-  if (typeof base !== "string" || base.length === 0) return;
+  // EJS_pathtodata only exists once the player has mounted, so clearing from
+  // anywhere else -- or after a refresh -- used to return here and revalidate
+  // nothing, silently, while the IndexedDB half still ran. The button then
+  // looks like it worked and the HTTP cache is untouched. The path is a fixed
+  // constant, so fall back to it rather than give up.
+  const base = ejsWindow().EJS_pathtodata || EJS_DATA_PATH;
   // EJS_pathtodata is set without a trailing slash, and its other caller adds
   // the separator itself. Joining without one produced ".../dataloader.js" for
   // every entry: a 404 the catch below discarded, so this has been clearing
