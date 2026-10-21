@@ -48,3 +48,6 @@ SECURITY.md
 
 # Note: we intentionally do NOT ignore `docker/` because `docker/Dockerfile`
 # copies init scripts and nginx/gunicorn configs from that folder.
+
+# EmulatorJS cores are downloaded and checksum-verified by docker/Dockerfile.
+docker/emulatorjs/data/cores/

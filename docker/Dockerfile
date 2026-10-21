@@ -198,13 +198,25 @@ FROM alpine:${ALPINE_VERSION}@sha256:${ALPINE_SHA256} AS emulator-stage
 RUN apk add --no-cache \
     7zip
 
-# EmulatorJS, staged by scummvm-wasm's deploy-to-romm.sh rather than fetched.
+# EmulatorJS JS, staged by scummvm-wasm's deploy-to-romm.sh rather than fetched.
 # This replaces a checksum-verified release download: the tree is assembled
 # outside the build, so verify it by rebuilding from the pinned commit and
 # diffing. Pinned to a commit because main is unreleased and moves.
 ARG EMULATORJS_COMMIT=0235603
 
 COPY docker/emulatorjs/ /emulatorjs/
+
+# Cores come from the nightly channel, the only one whose cores export
+# EmulatorJSGetState() for the pinned JS. Nightly moves, so the manifest pins
+# every file by sha256 and a changed upstream fails the build.
+ARG EMULATORJS_CORES_URL=https://cdn.emulatorjs.org/nightly/data/cores
+COPY docker/emulatorjs-cores.sha256 /tmp/emulatorjs-cores.sha256
+WORKDIR /emulatorjs/data/cores
+RUN awk '{print $2}' /tmp/emulatorjs-cores.sha256 | \
+    xargs -P 8 -I {} sh -c 'mkdir -p "$(dirname "$1")" && wget -q -O "$1" "$0/$1"' "${EMULATORJS_CORES_URL}" {} && \
+    sha256sum -c -s /tmp/emulatorjs-cores.sha256 && \
+    rm /tmp/emulatorjs-cores.sha256
+WORKDIR /
 
 # ScummVM core (built separately by the scummvm-wasm project, staged here
 # by that project's build/deploy-to-romm.sh -- not part of the official
